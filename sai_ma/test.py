@@ -2,6 +2,8 @@ import sys
 n = int(raw_input())
 ary = map(int, raw_input().split(' '))
 ary.sort()
+
+
 def solution(n, ary):
     count = 1
     res = 0
