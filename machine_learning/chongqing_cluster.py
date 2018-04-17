@@ -13,7 +13,7 @@ cluster.fit(features)
 command2 = "awk '{print $1}' ./data_set/chongqing_test"
 names_list = os.popen(command2).read()
 
-w = open('./labels_average', 'w')
-for id, label in zip(names_list.splitlines(), cluster.fit_predict(features)):
+w = open('./labels_average_1', 'w')
+for id, label in zip(names_list.splitlines(), cluster.labels_):
     w.write(str(id+' '+str(label)+'\n'))
 w.close()
