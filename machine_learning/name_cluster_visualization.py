@@ -35,23 +35,29 @@ def merge(imglist,output):
     merge_img.save(output,quality=100)
 
 if __name__ == '__main__':
-    name_labels_file = sys.argv[1]
-    labels_align = sys.argv[2]
-    name = sys.argv[3]
-    # find label
-    label = os.popen("grep " + name + ' ' + name_labels_file).read().split(' ')[1]
-    lines = os.popen("cat " + labels_align).read().splitlines()
-    lines.sort()
+    name, label , labels_align = '', '', ''
+    if len(sys.argv) == 4:
+        name_labels_file = sys.argv[1]
+        labels_align = sys.argv[2]
+        name = sys.argv[3]
+        label = os.popen("grep " + name + ' ' + name_labels_file).read().strip().split(' ')[1]
+    elif len(sys.argv) == 3:
+        labels_align = sys.argv[1]
+        label = sys.argv[2]
+    else:
+        print len(sys.argv)
+        print 'stdin is wrong'
+    label_grep = str(label+" ")
+    lines = os.popen('cat '+labels_align+' | '+'grep '+label_grep).read().splitlines()
+    # lines.sort()
     res = []
-    mark = False
+    count = 0
     for i in lines:
-        rmp_ary = i.split(' ')
-        if int(rmp_ary[0]) == label:
-            res.append(rmp_ary[1])
-            mark = True
-        else:
-            if mark:
-                break
-            else:
-                continue
-    merge(res, name+label+'.jpg')
+        res.append(i.split(' ')[1])
+        count += 1
+    #     else:
+    #         if mark:
+    #             break
+    #         else:
+    #             continue
+    merge(res, label+'-'+str(count)+'.jpg')
