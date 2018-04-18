@@ -47,14 +47,16 @@ if __name__ == '__main__':
     else:
         print len(sys.argv)
         print 'stdin is wrong'
-    label_grep = str(label+" ")
-    lines = os.popen('cat '+labels_align+' | '+'grep '+label_grep).read().splitlines()
-    # lines.sort()
+    lines = os.popen("cat "+labels_align+" | "+"grep "+'"'+label+" "+'"').read().splitlines()
+   # print "cat "+labels_align+" | "+"grep "+'"'+label+" "+'"'
+     # lines.sort()
+    print lines
     res = []
     count = 0
     for i in lines:
-        res.append(i.split(' ')[1])
-        count += 1
+        if i.split(' ')[0] == label:
+            res.append(i.split(' ')[1])
+            count += 1
     #     else:
     #         if mark:
     #             break
