@@ -1,6 +1,7 @@
 import sys,os
 import Image
 
+
 def merge(imglist,output):
     picsize=150
     cur_width = 0
