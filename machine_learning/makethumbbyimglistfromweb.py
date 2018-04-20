@@ -1,4 +1,4 @@
-import os,sys,Image
+import os,sys,PIL.Image
 if not os.path.exists("imgs"):
 	os.makedirs("imgs")
 def merge(imglist,output):
