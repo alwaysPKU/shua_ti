@@ -1,11 +1,26 @@
-import sys,os
+import sys, os
 import numpy as np
 from sklearn.preprocessing import normalize
-import re
 from pyflann import FLANN
+import datetime
 
 
-def time_window(l_fid,r_fid,fids):
+def get_id_time(fid):
+    id, time = '', ''
+    key = fid.split('/')[-1].rstrip('.jpg')
+    ary = key.split('_')
+    if len(ary) == 6:
+        id = ary[0] + ary[1]
+        time = ary[2][:-3]
+    else:
+        ary = key.split('-')
+        id = ary[0] + ary[1]
+        tmp = ary[2].split('_')
+        time = '20' + tmp[0] + tmp[1]
+    return id, time
+
+
+def time_window(l_fid, r_fid, fids):
     '''
     if the two pics in the time_window = 1minute
     :param l_fid: 
@@ -14,7 +29,15 @@ def time_window(l_fid,r_fid,fids):
     '''
     l = fids[l_fid]
     r = fids[r_fid]
-    return
+    l_id, l_time = get_id_time(l)
+    r_id, r_time = get_id_time(r)
+    if l_id == r_id :
+        d1 = datetime.datetime.strptime(l_time, '%Y%m%d%H%M%S')
+        d2 = datetime.datetime.strptime(r_time, '%Y%m%d%H%M%S')
+        delta = d1 - d2
+        if abs(delta.seconds) <= 60:
+            return True
+    return False
 
 
 def read(fid_label_file, fid_features_file):
@@ -47,6 +70,13 @@ def read(fid_label_file, fid_features_file):
 
 
 def write(fids, new_labels, out_put):
+    '''
+    output
+    :param fids: fid
+    :param new_labels: label
+    :param out_put: file_name
+    :return: 
+    '''
     with open(out_put, 'w') as w:
         for fid, label in zip(fids, new_labels):
             w.write(fid+' '+label+'\n')
@@ -79,6 +109,10 @@ def get_ANN(features, labels):
 #     return
 
 def merge_labels(labels_fix):
+    '''
+    :param labels_fix:[[],[],[],[]] 
+    :return: [[],[]]
+    '''
     map_1 = {}
     map_2 = {}
     for i, tumple in enumerate(labels_fix):
