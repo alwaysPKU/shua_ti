@@ -64,8 +64,10 @@ def read(fid_label_file, fid_features_file):
             label_index_dict[ary[1]].append(i)
             i+=1
             line = f.readline()
-    lines = os.popen("awk 'sub($1,'idontknow')' "+fid_features_file).read()
-    features = normalize(np.fromstring(lines, 'f', -1, ' ').reshape(-1, 384))
+    # lines = os.popen("awk 'sub($1,'idontknow')' "+fid_features_file).read()
+    # features = normalize(np.fromstring(lines, 'f', -1, ' ').reshape(-1, 384))
+    features = normalize(np.loadtxt(fid_features_file, usecols=range(1, 385)))
+    print features.shape
     return np.array(fids), np.array(labels), np.array(features), label_index_dict
 
 
@@ -79,7 +81,7 @@ def write(fids, new_labels, out_put):
     '''
     with open(out_put, 'w') as w:
         for fid, label in zip(fids, new_labels):
-            w.write(fid+' '+label+'\n')
+            w.write(fid+' '+str(label)+'\n')
 
 
 def get_ANN(features, labels):
@@ -92,21 +94,17 @@ def get_ANN(features, labels):
     flann = FLANN()
     K = 100
     results, dists = flann.nn(features, features, K,)
-    index = np.tile(np.array(results.shape[0]).reshape(-1, 1), results.shape[1])
+    index = np.tile(np.arange(results.shape[0]).reshape(-1, 1), results.shape[1])
     not_same = labels[results] != labels[index]
-    threshold = dists > 0.7  # 欧氏距离
+    threshold = dists < 0.7
     wh = np.where(not_same & threshold)
     print len(wh[0])
-    ret = [labels[wh[0]], labels[wh]]
+    ret = [labels[wh[0]], labels[results[wh]]]
     Dist = [dists[wh]]
     index1 = [wh[0]]
     index2 = [results[wh]]
     return ret+Dist+index1+index2
 
-
-# def merge_label(l_labelnum, r_labelnum, label_indexes):
-#
-#     return
 
 def merge_labels(labels_fix):
     '''
@@ -154,7 +152,7 @@ def main(fid_label_file, fid_features_file,out_put):
     results = get_ANN(features, labels)
     last_a = ''
     last_b = ''
-    new_labels = np.array([-1]*len(labels)).reshape(-1, 1)
+    new_labels = np.array([-1]*len(labels))
     for a, b, dist, l_index, r_index in sorted(zip(*results)):
         if a == last_a and b == last_b:
             continue
@@ -178,4 +176,4 @@ if __name__ == '__main__':
     fid_label_file = sys.argv[1]
     fid_features_file = sys.argv[2]
     out_put = sys.argv[3]
-    main(fid_label_file, fid_features_file,out_put)
+    main(fid_label_file, fid_features_file, out_put)
