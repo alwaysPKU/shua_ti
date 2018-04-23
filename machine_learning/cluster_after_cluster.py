@@ -107,6 +107,24 @@ def get_ANN(features, labels):
     return ret+Dist+index1+index2
 
 
+def get_ANN_from_file(labels):
+    '''
+    output_file
+    :param labels: 
+    :return: [[l_label],[r_label],[dist],[l_index],[r_index]]
+    '''
+    lines = os.popen('cat output_file*').read()
+    mat = np.fromstring(lines, 'f', -1, ' ').reshape(-1, 3)
+    index1 = mat[:, 0].astype('int32')
+    index2 = mat[:, 1].astype('int32')
+    dists = mat[:, 2].astype('f')
+    not_same = labels[index1] != labels[index2]
+    threshold = dists < 0.68
+    wh = np.where(not_same & threshold)
+    ret = [labels[index1[wh]], labels[index2[wh]], dists[wh], index1[wh], index2[wh]]
+    return ret
+
+
 def merge_labels(labels_fix):
     '''
     :param labels_fix:[[],[],[],[]] 
@@ -150,7 +168,8 @@ def merge_labels(labels_fix):
 def main(fid_label_file, fid_features_file,out_put):
     labels_fix = []
     fids, labels, features, label_indexes = read(fid_label_file, fid_features_file)
-    results = get_ANN(features, labels)
+    # results = get_ANN(features, labels)
+    results = get_ANN_from_file(labels)
     last_a = ''
     last_b = ''
     new_labels = np.array([-1]*len(labels))
@@ -171,7 +190,7 @@ def main(fid_label_file, fid_features_file,out_put):
             for k in label_indexes[j]:
                 new_labels[k] = cluster
             del label_indexes[j]
-    print '%d cluster merged'
+    print '%d cluster merged' % merge_num
     for v in label_indexes.values():
         for i in v:
             new_labels[i] = num_cluster
@@ -184,6 +203,7 @@ def main(fid_label_file, fid_features_file,out_put):
 
 if __name__ == '__main__':
     print 'start...main', datetime.datetime.now()
+    os.system('./release04_0.65 '+sys.argv[2])
     fid_label_file = sys.argv[1]
     fid_features_file = sys.argv[2]
     out_put = sys.argv[3]
