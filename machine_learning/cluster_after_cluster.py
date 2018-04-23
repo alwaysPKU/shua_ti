@@ -162,10 +162,14 @@ def main(fid_label_file, fid_features_file,out_put):
         last_b=b
     res = merge_labels(labels_fix)
     num_cluster = len(res)
+    merge_num = 0
     for cluster, i in enumerate(res):
+        print cluster
+        merge_num += len(i)
         for j in i:
             for k in label_indexes[j]:
                 new_labels[k] = cluster
+    print '%d cluster merged'
     for i, label in enumerate(new_labels):
         if label == -1:
             new_labels[i] = num_cluster
@@ -173,7 +177,9 @@ def main(fid_label_file, fid_features_file,out_put):
     write(fids, new_labels, out_put)
 
 if __name__ == '__main__':
+    print datetime.time()
     fid_label_file = sys.argv[1]
     fid_features_file = sys.argv[2]
     out_put = sys.argv[3]
     main(fid_label_file, fid_features_file, out_put)
+    print datetime.time()
