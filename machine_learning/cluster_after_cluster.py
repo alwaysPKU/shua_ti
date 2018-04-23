@@ -86,6 +86,7 @@ def write(fids, new_labels, out_put):
 
 def get_ANN(features, labels):
     '''
+    100 nearest
     :param features: 
     :param labels: 
     :param fid: no.......................
@@ -163,23 +164,30 @@ def main(fid_label_file, fid_features_file,out_put):
     res = merge_labels(labels_fix)
     num_cluster = len(res)
     merge_num = 0
+    tmp_set = set()
     for cluster, i in enumerate(res):
         print cluster
         merge_num += len(i)
         for j in i:
+            tmp_set.add(j)
             for k in label_indexes[j]:
                 new_labels[k] = cluster
     print '%d cluster merged'
-    for i, label in enumerate(new_labels):
-        if label == -1:
-            new_labels[i] = num_cluster
+    for k, v in label_indexes.items():
+        if k not in tmp_set:
+            for i in v:
+                new_labels[i] = num_cluster
             num_cluster += 1
+    # for i, label in enumerate(new_labels):
+    #     if label == -1:
+    #         new_labels[i] = num_cluster
+    #         num_cluster += 1
     write(fids, new_labels, out_put)
 
 if __name__ == '__main__':
-    print datetime.time()
+    print 'start...main', datetime.datetime.now()
     fid_label_file = sys.argv[1]
     fid_features_file = sys.argv[2]
     out_put = sys.argv[3]
     main(fid_label_file, fid_features_file, out_put)
-    print datetime.time()
+    print 'end...main', datetime.datetime.now()
