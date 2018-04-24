@@ -3,10 +3,10 @@ import os
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.preprocessing import normalize
 
-command = "awk 'sub($1,'idontkonw')' ./data_set/zhangwei_featlst_test_100"
-lines = os.popen(command).read()
-features = normalize(np.fromstring(lines, 'f', -1, ' ').reshape((-1, 384)))
-print(features[0].shape)
+# command = "awk 'sub($1,'idontkonw')' ./data_set/zhangwei_featlst_test_100"
+# lines = os.popen(command).read()
+features = normalize(np.loadtxt('./data_set/zhangwei_featlst_test_100', 'f', usecols=range(1,385)).reshape((-1, 384)))
+print(features.shape)
 
 # cluster = AgglomerativeClustering(n_clusters=2, affinity='cosine', linkage='average')
 # cluster.fit(features)

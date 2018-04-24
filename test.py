@@ -24,13 +24,15 @@ label = np.arange(100,step=2)
 ind = np.arange(10).reshape(2, 5)
 print label[ind]
 
-print '==========================='
+print '============wh' \
+      '==============='
 a= array([1, 2, 3, 1, 2, 3, 1, 2, 3]).reshape(3,3)
 print a
 wh = np.where(a>2)
 print wh
-print wh[0]
-print a[wh]
+print 'wh[0]:',wh[0]
+print 'wh[1]:',wh[1]
+print 'a[wh]:',a[wh]
 ret= [wh[0], a[wh]]
 print ret
 result = ret + [[1,2,3]]
@@ -47,3 +49,9 @@ tiaojian = np.array([[0,1,3,5,2,4],
  [1,5,3,4,2,0]])
 res = aa[tiaojian]
 print res
+
+print '======len======='
+l = [1,2,3,4,5]
+for i in l[:9]:
+    print i
+
