@@ -178,8 +178,8 @@ def main(fid_label_file, fid_features_file,out_put):
             continue
         if time_window(l_index, r_index, fids):
             labels_fix.append([a, b])
-        last_a=a
-        last_b=b
+            last_a=a
+            last_b=b
     res = merge_labels(labels_fix)
     num_cluster = len(res)
     merge_num = 0
