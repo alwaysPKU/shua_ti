@@ -5,5 +5,5 @@ def panding(a):
 
 if __name__ == '__main__':
     p = panding(2)
-    if p:
+    if not p:
         print 'dui'

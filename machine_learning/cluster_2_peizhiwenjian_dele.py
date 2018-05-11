@@ -283,4 +283,5 @@ if __name__ == '__main__':
         print 'out_put', out_put
     main(fid_label_file, out_put)
     t2 = datetime.datetime.now()
-    print 'end...main', t2, t2-t1
+    print 'end...main', t2, t2-t1, '\n'
+
