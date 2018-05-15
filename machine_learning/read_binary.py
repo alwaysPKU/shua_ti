@@ -1,5 +1,5 @@
 import struct
-f = open('./data_set/hq1.bin', 'rb')
+f = open('./data_set/hq1_change.bin', 'rb')
 count = f.read(8)
 count2= f.read(8)
 data, = struct.unpack('q', count)
