@@ -1,3 +1,2 @@
-a = 'dfdf-dfdfd-1234567'
-ary = a.split('-')
-print ary[0]+ary[2][:3]
+for i in range(10,0,-1):
+    print i
