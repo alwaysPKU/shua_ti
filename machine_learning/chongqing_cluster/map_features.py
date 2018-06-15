@@ -1,5 +1,7 @@
+from __future__ import print_function
 import os,re
 from multiprocessing import Pool
+
 
 w1=open('chongqing_001-011_featlst','aw')
 condition1=('001','002','003','004','005','006','007','008','009','010','011')
@@ -56,18 +58,22 @@ def judege(file_path):
             elif fid in condition12:
                 w12.write(line)
             else:
-                print 'wrong:',fid
+                print ('wrong:',fid)
             line = f.readline()
+
+def sayHi(fi):
+    return fi
 
 if __name__ == '__main__':
     command='ls ../cqdata/features/mergecq*'
     files=os.popen(command).read().splitlines()
-    print 'nums of file:',len(files)
-    print files
+    print ('nums of file:',len(files))
+    print (files)
     p = Pool(20)
     for i, file_path in enumerate(files):
-        print 'process:%2d,file:%s'%(i,file_path)
-        p.apply_async(judege, args=(file_path,),callback=mycallback)
+        print ('process:%2d,file:%s'%(i,file_path))
+   #     judege(file_path)
+        p.apply_async(sayHi, args=(file_path,), callback=judege)
     p.close()
     p.join()
     
