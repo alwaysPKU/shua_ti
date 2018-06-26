@@ -40,6 +40,8 @@ def read(f1,f2):
     """读文件1.读features文件得到features和相对时间戳,2.读参数文件得到打分"""
     #1.
     #features
+    t1=get_time()
+    print 'start read features and fid'
     mat_features = normalize(np.array(np.loadtxt(f1, usecols=range(1,385)), 'f'))
     #时间戳
     #time_list=map(get_id_time, os.popen("awk '{print$1}' "+f1).read().splitlines())
@@ -47,13 +49,19 @@ def read(f1,f2):
     fid_list=os.popen("awk '{print$1}' "+f1).read().splitlines()
     #2.
     #打分
+    t2=get_time()
+    print 'end read features, use %s s. start read scores'%(t2-t1)
     score_list = [float(one_line.strip().split(',')[-3])*float(one_line.strip().split(',')[-2]) \
         for one_line in open(f2).readlines()]
     #return time_list,mat_features, score_list, fid_list
+    t3=get_time()
+    print 'end read scores, use %s s'%(t3-t2)
     return fid_list,mat_features,np.array(score_list)
 
 def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     # 建标签索引 
+    t1=get_time()
+    print 'pre for the %d cluster'%(i+1)    
     labels_index={}
     index_rp=[]
     rp_index={}
@@ -67,7 +75,7 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
             if not label in labels_index.keys():
                 labels_index[label]=[]
             labels_index[label].append(index)
-        
+    print 'the %d cluster has %d clusters'%(i,len(labels_index))    
     for index_lst in labels_index.values():
         #labels_first_lst.append(label)
         tmp=0
@@ -80,15 +88,22 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
         rp_index[mark]=index_lst
         mark=0
     # num2=len(idex_rp)
+    t2=get_time()
+    print 'end pre,use %s s.  start %d cluster:'%(t2-t1,i+1)
     new_features=mat_features[index_rp]
     pairs_cdists=compute_dist.get_cdist(new_features,threshold)
     labels_2=cluster.cluster(pairs_cdists, len(labels_index))
+    t3=get_time()
+    print 'end %d cluster, use %s s'%(i+1, t3-t2)
     return index_rp, labels_2, rp_index
 
 def main(f1,f2,threshold,out_file):#,f2
     #time_list,mat_features,score_list,fid_list=read(f1,f2)
     fid_list, mat_features,score_list=read(f1,f2)
     num=len(fid_list)
+
+    t1=get_time()
+    print 'start first cluster:',t1
     #按照时间戳排序:
     #for timestap,feature,score,fid in sorted(zip(time_list,mat_features,score_list,fid_list),key=lambda x:x[0]):
     # 计算pairs_dist:格式[[index1,index2,cdist],]
@@ -96,6 +111,9 @@ def main(f1,f2,threshold,out_file):#,f2
     # 第一次聚类:
     labels=cluster.cluster(pairs_cdists,num)
     # loop cluster
+    t2=get_time()
+    print 'end 1 cluster, use %s s'%(t2-t1)
+    print 'start loop cluster:'
     index_rps_list=[] #2维
     labels_rps_list=[] #2维
     rp_index_list=[] #2维但长度-1
@@ -108,7 +126,11 @@ def main(f1,f2,threshold,out_file):#,f2
         index_rps_list.append(idex_rp)
         labels_rps_list.append(labels_i)
         rp_index_list.append(rp_index)
+    
     # merge clusters
+    t3=get_time()
+    print 'end loop cluster, use %s s'%(t3-t2)
+    print 'start merge labels and write'
     step=len(rp_index_list)
     labels_rp_result={}
     for rp, label in zip(index_rps_list[step],labels_rps_list[step]):
@@ -120,6 +142,8 @@ def main(f1,f2,threshold,out_file):#,f2
             for index in v:
                 labels_rp_result[k].extend(rp_index_list[i][index])
             labels_rp_result[k]=set(labels_rp_result[k])
+    t4 = get_time()
+    print 'end merge labels, use %s s'%(t4-t3)
     #return labels_rp_result
     #结果输出
     f=open(out_file,'w')
@@ -132,10 +156,12 @@ def main(f1,f2,threshold,out_file):#,f2
     for fid, label in sorted(zip(index_full,labels_full),key=lambda x:x[0]):
         f.write(fid_list[fid]+' '+str(label)+'\n')
     f.close()
+    t5=get_time()
+    print 'end write result, use %s s'%(t5-t4)
 
 if __name__ == "__main__":
     feature_file=sys.argv[1]
-    thresholds=[0.7,0.6,0.5]
+    thresholds=[0.9,0.8,0.7]
     params_file=sys.argv[2]
     out_put=sys.argv[3]
     # 以2016.1.1为起点
