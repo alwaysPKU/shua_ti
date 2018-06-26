@@ -63,9 +63,9 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
                 labels_index[label]=[]
             labels_index[label].append(i)
     else:
-        for index,labels in zip(index_rp,labels):
+        for index,label in zip(index_rp,labels):
             if not label in labels_index.keys():
-                lables_index[label]=[]
+                labels_index[label]=[]
             labels_index[label].append(index)
         
     for index_lst in labels_index.values():
@@ -75,7 +75,7 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
         for index in index_lst:
             if score_list[index]>tmp:
                 tmp=score_list[index]
-                mark = idex
+                mark = index
         index_rp.append(mark)
         rp_index[mark]=index_lst
         mark=0
@@ -83,16 +83,16 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     new_features=mat_features[index_rp]
     pairs_cdists=compute_dist.get_cdist(new_features,threshold)
     labels_2=cluster.cluster(pairs_cdists, len(labels_index))
-    return idex_rp, labels_2, rp_index
+    return index_rp, labels_2, rp_index
 
-def main(f1,f2,threshold):#,f2
+def main(f1,f2,threshold,out_file):#,f2
     #time_list,mat_features,score_list,fid_list=read(f1,f2)
     fid_list, mat_features,score_list=read(f1,f2)
     num=len(fid_list)
     #按照时间戳排序:
     #for timestap,feature,score,fid in sorted(zip(time_list,mat_features,score_list,fid_list),key=lambda x:x[0]):
     # 计算pairs_dist:格式[[index1,index2,cdist],]
-    pairs_cdists=compute_dist.get_cdist(mat_features,threshold_n)
+    pairs_cdists=compute_dist.get_cdist(mat_features,threshold[0])
     # 第一次聚类:
     labels=cluster.cluster(pairs_cdists,num)
     # loop cluster
@@ -102,6 +102,8 @@ def main(f1,f2,threshold):#,f2
     index_rps_list.append(range(num))
     labels_rps_list.append(labels)
     for i,thr in enumerate(threshold):
+        if i==0:
+            continue
         idex_rp,labels_i,rp_index=loop_cluster(index_rps_list[i],labels[i],mat_features,score_list,thr,i)
         index_rps_list.append(idex_rp)
         labels_rps_list.append(labels_i)
@@ -110,7 +112,7 @@ def main(f1,f2,threshold):#,f2
     step=len(rp_index_list)
     labels_rp_result={}
     for rp, label in zip(index_rps_list[step],labels_rps_list[step]):
-        if not label in labels_rp_tmp.keys():
+        if not label in labels_rp_result.keys():
             labels_rp_result[label]=[]
         labels_rp_result[label].append(rp)
     for i in range(step-1,-1,-1):
@@ -118,15 +120,26 @@ def main(f1,f2,threshold):#,f2
             for index in v:
                 labels_rp_result[k].extend(rp_index_list[i][index])
             labels_rp_result[k]=set(labels_rp_result[k])
-    return labels_rp_result
-
+    #return labels_rp_result
+    #结果输出
+    f=open(out_file,'w')
+    labels_full=[]
+    index_full=[]
+    for k,v in labels_rp_result.items():
+        for index in v:
+            labels_full.append(k)
+            index_full.append(index)
+    for fid, label in sorted(zip(index_full,labels_full),key=lambda x:x[0]):
+        f.write(fid_list[fid]+' '+str(label)+'\n')
+    f.close()
 
 if __name__ == "__main__":
     feature_file=sys.argv[1]
     thresholds=[0.7,0.6,0.5]
-    #params_file=sys.argv[2]
+    params_file=sys.argv[2]
+    out_put=sys.argv[3]
     # 以2016.1.1为起点
     time_start=time.mktime(time.strptime('20160101000000',"%Y%m%d%H%M%S"))
-    main(feature_file,params_file,thresholds)
+    main(feature_file,params_file,thresholds,out_put)
 
 
