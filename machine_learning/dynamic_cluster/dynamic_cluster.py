@@ -63,14 +63,15 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     t1=get_time()
     print 'pre for the %d cluster'%(i+1)    
     labels_index={}
-    index_rp=[]
+    index_rp_res=[]
     rp_index={}
-    if i==0:
-        for i,label in enumerate(labels):
+    if i==1:
+        for j,label in enumerate(labels):
             if not label in labels_index.keys():
                 labels_index[label]=[]
-            labels_index[label].append(i)
+            labels_index[label].append(j)
     else:
+        print '----------->'
         for index,label in zip(index_rp,labels):
             if not label in labels_index.keys():
                 labels_index[label]=[]
@@ -84,18 +85,19 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
             if score_list[index]>tmp:
                 tmp=score_list[index]
                 mark = index
-        index_rp.append(mark)
+        index_rp_res.append(mark)
         rp_index[mark]=index_lst
-        mark=0
+    #    mark=0
     # num2=len(idex_rp)
     t2=get_time()
     print 'end pre,use %s s.  start %d cluster:'%(t2-t1,i+1)
-    new_features=mat_features[index_rp]
+    print '==========',len(index_rp_res),mat_features.shape
+    new_features=mat_features[index_rp_res]
     pairs_cdists=compute_dist.get_cdist(new_features,threshold)
     labels_2=cluster.cluster(pairs_cdists, len(labels_index))
     t3=get_time()
     print 'end %d cluster, use %s s'%(i+1, t3-t2)
-    return index_rp, labels_2, rp_index
+    return index_rp_res, labels_2, rp_index
 
 def main(f1,f2,threshold,out_file):#,f2
     #time_list,mat_features,score_list,fid_list=read(f1,f2)
@@ -110,6 +112,7 @@ def main(f1,f2,threshold,out_file):#,f2
     pairs_cdists=compute_dist.get_cdist(mat_features,threshold[0])
     # 第一次聚类:
     labels=cluster.cluster(pairs_cdists,num)
+    print '=====len(labels)',len(labels),labels[:30]
     # loop cluster
     t2=get_time()
     print 'end 1 cluster, use %s s'%(t2-t1)
@@ -122,7 +125,7 @@ def main(f1,f2,threshold,out_file):#,f2
     for i,thr in enumerate(threshold):
         if i==0:
             continue
-        idex_rp,labels_i,rp_index=loop_cluster(index_rps_list[i],labels[i],mat_features,score_list,thr,i)
+        idex_rp,labels_i,rp_index=loop_cluster(index_rps_list[i-1],labels_rps_list[i-1],mat_features,score_list,thr,i)
         index_rps_list.append(idex_rp)
         labels_rps_list.append(labels_i)
         rp_index_list.append(rp_index)
