@@ -96,6 +96,7 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     # num2=len(idex_rp)
     t2=get_time()
     print 'end pre,use %s s.  start %d cluster:'%(t2-t1,i+1)
+    print '------------------------------------'
     #print '==========',len(index_rp_res),mat_features.shape
     new_features=mat_features[index_rp_res]
     pairs_cdists=compute_dist.get_cdist(new_features,threshold,gpus)
@@ -111,6 +112,7 @@ def main(f1,f2,threshold,out_file):#,f2
 
     t1=get_time()
     print 'start first cluster:',t1
+    print '------------------------------------'
     #按照时间戳排序:
     #for timestap,feature,score,fid in sorted(zip(time_list,mat_features,score_list,fid_list),key=lambda x:x[0]):
     # 计算pairs_dist:格式[[index1,index2,cdist],]
@@ -146,9 +148,9 @@ def main(f1,f2,threshold,out_file):#,f2
         if not label in labels_rp_result.keys():
             labels_rp_result[label]=[]
         labels_rp_result[label].append(rp)
-    print 'end 1---------->',get_time()-t3
+    #print 'end 1---------->',get_time()-t3
     for i in range(step-1,-1,-1):
-        print 'stt------->',i
+        #print 'stt------->',i
         for k,v in labels_rp_result.items():
             #print '    ------->',k,v
             s=copy.deepcopy(v)
@@ -172,7 +174,7 @@ def main(f1,f2,threshold,out_file):#,f2
     t5=get_time()
     print 'end write result, use %s s'%(t5-t4)
 
-if __name__ == "__main__":
+def parse_args():
     parser=argparse.ArgumentParser(description="this is dynamic cluster")
     parser.add_argument("-f","--feature",help="the features file path")
     parser.add_argument("-p","--param",help="the parameter file path")
@@ -180,6 +182,10 @@ if __name__ == "__main__":
     parser.add_argument("-o","--output",default='res_default',help="the output file")
     parser.add_argument("-g","--gpus",default='0,1,2,3,4,5',help="the gpu index,split with ',',default0,1,2,3,4,5")
     args=parser.parse_args()
+    return args
+
+if __name__ == "__main__":
+    args=parse_args()
     feature_file=args.feature
     params_file=args.param
     thresholds=map(float,args.thresholds.split(','))
@@ -192,7 +198,8 @@ if __name__ == "__main__":
     #params_file=sys.argv[2]
     #out_put=sys.argv[3]
     # 以2016.1.1为起点
-    print '-feature:%s,-params:%s,-thresholds:%s,-gpus:%s,-out_put:%s'%(args.features,args.param,args.thresholds,args.gpus,args.output)
+    print args
+    print '-feature:%s\n-params:%s\n-thresholds:%s\n-gpus:%s\n-out_put:%s\n'%(args.feature,args.param,args.thresholds,args.gpus,args.output)
     time_start=time.mktime(time.strptime('20160101000000',"%Y%m%d%H%M%S"))
     main(feature_file,params_file,thresholds,out_put)
 

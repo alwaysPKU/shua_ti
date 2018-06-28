@@ -15,7 +15,7 @@ import time
 #filter_threshold= 0.5
 pairs=500000000
 dim=384
-global GPUs=[0,1,2,3,4,5]
+#global GPUs
 #KEEP_FIRST=False
 calc= CDLL('./libthreshold.so')
 calc.calcthreshold.argtypes = [POINTER(c_float),POINTER(c_float) ,POINTER(c_int),c_float,POINTER(c_int) ,POINTER(c_int) ,POINTER(c_float) ]
@@ -100,7 +100,8 @@ def do2(i,query_l,query_r,lq,lg,dim,threshold,shift,gpu):
 
 
 def get_cdist(qmat,threshold,gpus):
-    global GPUs=gpus
+    #global GPUs
+    GPUs=gpus
     global Query
  #   global time_list
  #   global Gallery
@@ -112,7 +113,7 @@ def get_cdist(qmat,threshold,gpus):
     print ('qmat length', length) 
 #    assert(len(qmat)<400000)
     num=length/(pairs/length)
-    print ('hoe many batchs:',num)
+    print ('how many batchs:',num)
     # threshold=unmap(threshold)
     ans=[]   
     pool=multiprocessing.Pool(processes=len(GPUs))
@@ -124,8 +125,8 @@ def get_cdist(qmat,threshold,gpus):
       #  print ('q[],lq,lg,dim,th,shift:', length*i/num*dim, length*(i+1)/num*dim, length*(i+1)/num-length*i/num, length, dim, threshold,length*i/num)
       #  ans.append(pool.apply_async(do,(i,Query[length*i/num*dim:length*(i+1)/num*dim],Gallery[:],length*(i+1)/num-length*i/num, length, dim, threshold,length*i/num,GPUs[i%len(GPUs)],))) 
         ans.append(pool.apply_async(do2,(i,length*i/num*dim,length*(i+1)/num*dim,length*(i+1)/num-length*i/num, length, dim, threshold,length*i/num,GPUs[i%len(GPUs)],)))
-        t2 = datetime.datetime.now()
-    #    print ('time:',t2-t1)
+       # t2 = datetime.datetime.now()
+       #print ('time:',t2-t1)
     t11=datetime.datetime.now()
     print ('end for load pool',t11-t1)
     pool.close()
@@ -133,12 +134,12 @@ def get_cdist(qmat,threshold,gpus):
    # t111=datetime.datetime.now()
    # print ('end compute cdist:',t111-t1)
     tuples=[]
-    output_file = 'cdist_'+str(threshold)
+    #output_file = 'cdist_'+str(threshold)
     for a in ans:
         ret=a.get()
         tuples.extend(ret)
    # np.array(tuples)
-    print ('pairs:', len(tuples))
+    print ('how many satisfying pairs:', len(tuples))
     t2 = datetime.datetime.now()
     print ('end compute dist',t2-t1)
     return np.array(tuples)
