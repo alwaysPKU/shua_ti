@@ -15,7 +15,7 @@ import time
 #filter_threshold= 0.5
 pairs=500000000
 dim=384
-GPUs=[0,1,2,3,4,5]
+global GPUs=[0,1,2,3,4,5]
 #KEEP_FIRST=False
 calc= CDLL('./libthreshold.so')
 calc.calcthreshold.argtypes = [POINTER(c_float),POINTER(c_float) ,POINTER(c_int),c_float,POINTER(c_int) ,POINTER(c_int) ,POINTER(c_float) ]
@@ -99,7 +99,8 @@ def do2(i,query_l,query_r,lq,lg,dim,threshold,shift,gpu):
     return zip(index1[:paras[4]], index2[:paras[4]], scores[:paras[4]])
 
 
-def get_cdist(qmat,threshold):
+def get_cdist(qmat,threshold,gpus):
+    global GPUs=gpus
     global Query
  #   global time_list
  #   global Gallery
@@ -114,7 +115,7 @@ def get_cdist(qmat,threshold):
     print ('hoe many batchs:',num)
     # threshold=unmap(threshold)
     ans=[]   
-    pool=multiprocessing.Pool(processes=6)
+    pool=multiprocessing.Pool(processes=len(GPUs))
    
     for i in range(num):
     #    print ('batch:',i)

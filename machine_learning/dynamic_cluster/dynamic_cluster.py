@@ -8,7 +8,8 @@ import datetime
 import time
 import compute_pairs_cdist as compute_dist
 import cluster
-
+import copy
+import argparse
 """
 动态聚类:
 1. 选定需要动态聚类的次数n
@@ -35,6 +36,11 @@ def get_id_time(fid):
     tim=time.mktime(time.strptime(tim, "%Y%m%d%H%M%S"))-time_start
     return tim
 
+def float_x(s):
+    if s:
+        return float(s)
+    else:
+        return 0
 
 def read(f1,f2):
     """读文件1.读features文件得到features和相对时间戳,2.读参数文件得到打分"""
@@ -51,7 +57,7 @@ def read(f1,f2):
     #打分
     t2=get_time()
     print 'end read features, use %s s. start read scores'%(t2-t1)
-    score_list = [float(one_line.strip().split(',')[-3])*float(one_line.strip().split(',')[-2]) \
+    score_list = [float_x(one_line.strip().split(',')[-3])*float_x(one_line.strip().split(',')[-2]) \
         for one_line in open(f2).readlines()]
     #return time_list,mat_features, score_list, fid_list
     t3=get_time()
@@ -71,7 +77,6 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
                 labels_index[label]=[]
             labels_index[label].append(j)
     else:
-        print '----------->'
         for index,label in zip(index_rp,labels):
             if not label in labels_index.keys():
                 labels_index[label]=[]
@@ -91,9 +96,9 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     # num2=len(idex_rp)
     t2=get_time()
     print 'end pre,use %s s.  start %d cluster:'%(t2-t1,i+1)
-    print '==========',len(index_rp_res),mat_features.shape
+    #print '==========',len(index_rp_res),mat_features.shape
     new_features=mat_features[index_rp_res]
-    pairs_cdists=compute_dist.get_cdist(new_features,threshold)
+    pairs_cdists=compute_dist.get_cdist(new_features,threshold,gpus)
     labels_2=cluster.cluster(pairs_cdists, len(labels_index))
     t3=get_time()
     print 'end %d cluster, use %s s'%(i+1, t3-t2)
@@ -109,17 +114,17 @@ def main(f1,f2,threshold,out_file):#,f2
     #按照时间戳排序:
     #for timestap,feature,score,fid in sorted(zip(time_list,mat_features,score_list,fid_list),key=lambda x:x[0]):
     # 计算pairs_dist:格式[[index1,index2,cdist],]
-    pairs_cdists=compute_dist.get_cdist(mat_features,threshold[0])
+    pairs_cdists=compute_dist.get_cdist(mat_features,threshold[0],gpus)
     # 第一次聚类:
     labels=cluster.cluster(pairs_cdists,num)
-    print '=====len(labels)',len(labels),labels[:30]
+    #print '=====len(labels)',len(labels),labels[:30]
     # loop cluster
     t2=get_time()
     print 'end 1 cluster, use %s s'%(t2-t1)
     print 'start loop cluster:'
-    index_rps_list=[] #2维
-    labels_rps_list=[] #2维
-    rp_index_list=[] #2维但长度-1
+    index_rps_list=[] #2维  存放每次参与聚类的index
+    labels_rps_list=[] #2维 存放每次参与聚类的index 对应的labels
+    rp_index_list=[] #2维但长度-1  存放 rp_index-->index_list词典
     index_rps_list.append(range(num))
     labels_rps_list.append(labels)
     for i,thr in enumerate(threshold):
@@ -133,6 +138,7 @@ def main(f1,f2,threshold,out_file):#,f2
     # merge clusters
     t3=get_time()
     print 'end loop cluster, use %s s'%(t3-t2)
+    print 'num of final clusters:',len(rp_index_list[-1])
     print 'start merge labels and write'
     step=len(rp_index_list)
     labels_rp_result={}
@@ -140,11 +146,15 @@ def main(f1,f2,threshold,out_file):#,f2
         if not label in labels_rp_result.keys():
             labels_rp_result[label]=[]
         labels_rp_result[label].append(rp)
+    print 'end 1---------->',get_time()-t3
     for i in range(step-1,-1,-1):
+        print 'stt------->',i
         for k,v in labels_rp_result.items():
-            for index in v:
+            #print '    ------->',k,v
+            s=copy.deepcopy(v)
+            for index in s:
                 labels_rp_result[k].extend(rp_index_list[i][index])
-            labels_rp_result[k]=set(labels_rp_result[k])
+            labels_rp_result[k]=list(set(labels_rp_result[k]))
     t4 = get_time()
     print 'end merge labels, use %s s'%(t4-t3)
     #return labels_rp_result
@@ -163,11 +173,26 @@ def main(f1,f2,threshold,out_file):#,f2
     print 'end write result, use %s s'%(t5-t4)
 
 if __name__ == "__main__":
-    feature_file=sys.argv[1]
-    thresholds=[0.9,0.8,0.7]
-    params_file=sys.argv[2]
-    out_put=sys.argv[3]
+    parser=argparse.ArgumentParser(description="this is dynamic cluster")
+    parser.add_argument("-f","--feature",help="the features file path")
+    parser.add_argument("-p","--param",help="the parameter file path")
+    parser.add_argument("-t","--thresholds",default='0.9,0.8,0.7',dest="thresholds",help="the threshold list, split with ',',default=0.9,0.8,0.7 ")
+    parser.add_argument("-o","--output",default='res_default',help="the output file")
+    parser.add_argument("-g","--gpus",default='0,1,2,3,4,5',help="the gpu index,split with ',',default0,1,2,3,4,5")
+    args=parser.parse_args()
+    feature_file=args.feature
+    params_file=args.param
+    thresholds=map(float,args.thresholds.split(','))
+    thresholds.sort()
+    thresholds.reverse()
+    out_put=args.output
+    gpus=map(int,args.gpus.split(','))
+    #feature_file=sys.argv[1]
+    #thresholds=[0.9,0.8,0.7]
+    #params_file=sys.argv[2]
+    #out_put=sys.argv[3]
     # 以2016.1.1为起点
+    print '-feature:%s,-params:%s,-thresholds:%s,-gpus:%s,-out_put:%s'%(args.features,args.param,args.thresholds,args.gpus,args.output)
     time_start=time.mktime(time.strptime('20160101000000',"%Y%m%d%H%M%S"))
     main(feature_file,params_file,thresholds,out_put)
 
