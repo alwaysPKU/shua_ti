@@ -42,6 +42,36 @@ def float_x(s):
     else:
         return 0
 
+def read_2(f1,f2):
+    """读文件1.读features文件得到features和相对时间戳,2.读参数文件得到打分"""
+    #1.
+    #features
+    t1=get_time()
+    print 'start read features and fid'
+    mat_features=[]
+    fid_list=[]
+    with open(f1) as f:
+        for line in f.readlines():
+            ary=line.strip().split(' ')
+            fid_list.append(ary[0])
+            mat_features.append(map(float,ary[1:]))
+    mat_features=normalize(np.array(mat_features,dtype='float32'))
+    #mat_features = normalize(np.loadtxt(f1,dtype='float32', usecols=range(1,385)))
+    #时间戳
+    #time_list=map(get_id_time, os.popen("awk '{print$1}' "+f1).read().splitlines())
+    #fid
+    #fid_list=os.popen("awk '{print$1}' "+f1).read().splitlines()
+    #2.
+    #打分
+    t2=get_time()
+    print 'end read features, use %s s. start read scores'%(t2-t1)
+    score_list = [float_x(one_line.strip().split(',')[-3])*float_x(one_line.strip().split(',')[-2]) \
+        for one_line in open(f2).readlines()]
+    #return time_list,mat_features, score_list, fid_list
+    t3=get_time()
+    print 'end read scores, use %s s'%(t3-t2)
+    return fid_list,mat_features,np.array(score_list)
+
 def read(f1,f2):
     """读文件1.读features文件得到features和相对时间戳,2.读参数文件得到打分"""
     #1.
@@ -99,7 +129,7 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     print '------------------------------------'
     #print '==========',len(index_rp_res),mat_features.shape
     new_features=mat_features[index_rp_res]
-    pairs_cdists=compute_dist.get_cdist(new_features,threshold,gpus)
+    pairs_cdists=compute_dist.get_cdist_multi(new_features,threshold,gpus)
     labels_2=cluster.cluster(pairs_cdists, len(labels_index))
     t3=get_time()
     print 'end %d cluster, use %s s'%(i+1, t3-t2)
@@ -107,7 +137,7 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
 
 def main(f1,f2,threshold,out_file):#,f2
     #time_list,mat_features,score_list,fid_list=read(f1,f2)
-    fid_list, mat_features,score_list=read(f1,f2)
+    fid_list, mat_features,score_list=read_2(f1,f2)
     num=len(fid_list)
 
     t1=get_time()
@@ -116,7 +146,7 @@ def main(f1,f2,threshold,out_file):#,f2
     #按照时间戳排序:
     #for timestap,feature,score,fid in sorted(zip(time_list,mat_features,score_list,fid_list),key=lambda x:x[0]):
     # 计算pairs_dist:格式[[index1,index2,cdist],]
-    pairs_cdists=compute_dist.get_cdist(mat_features,threshold[0],gpus)
+    pairs_cdists=compute_dist.get_cdist_multi(mat_features,threshold[0],gpus)
     # 第一次聚类:
     labels=cluster.cluster(pairs_cdists,num)
     #print '=====len(labels)',len(labels),labels[:30]
@@ -185,6 +215,7 @@ def parse_args():
     return args
 
 if __name__ == "__main__":
+    print get_time()
     args=parse_args()
     feature_file=args.feature
     params_file=args.param
@@ -202,5 +233,6 @@ if __name__ == "__main__":
     print '-feature:%s\n-params:%s\n-thresholds:%s\n-gpus:%s\n-out_put:%s\n'%(args.feature,args.param,args.thresholds,args.gpus,args.output)
     time_start=time.mktime(time.strptime('20160101000000',"%Y%m%d%H%M%S"))
     main(feature_file,params_file,thresholds,out_put)
+    print get_time()
 
 

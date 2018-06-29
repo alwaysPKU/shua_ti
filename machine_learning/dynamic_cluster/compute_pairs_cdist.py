@@ -13,7 +13,7 @@ import time
 #maxappearance=4
 #time_start=time.mktime(time.strptime('20160101000000',"%Y%m%d%H%M%S"))
 #filter_threshold= 0.5
-pairs=500000000
+batch_size=20000
 dim=384
 #global GPUs
 #KEEP_FIRST=False
@@ -99,7 +99,7 @@ def do2(i,query_l,query_r,lq,lg,dim,threshold,shift,gpu):
     return zip(index1[:paras[4]], index2[:paras[4]], scores[:paras[4]])
 
 
-def get_cdist(qmat,threshold,gpus):
+def get_cdist_multi(qmat,threshold,gpus):
     #global GPUs
     GPUs=gpus
     global Query
@@ -112,7 +112,8 @@ def get_cdist(qmat,threshold,gpus):
     length=len(qmat)
     print ('qmat length', length) 
 #    assert(len(qmat)<400000)
-    num=length/(pairs/length)
+   # num=length/(pairs/length)
+    num=length/batch_size+1
     print ('how many batchs:',num)
     # threshold=unmap(threshold)
     ans=[]   
@@ -149,12 +150,48 @@ def get_cdist(qmat,threshold,gpus):
 #    print ('out_put: ', output_file)
     
 
-#def get_dist(query):
+def get_cdist(qmat,threshold,gpus):
+    #global GPUs
+    GPUs=gpus
+    global Query
  #   global time_list
-   # qmat,time_list=read(query)
-   # print (time)
-   # run(qmat,time_list, filter_threshold)
-
-
-#if __name__ == "__main__":
-#    main(sys.argv[1])
+ #   global Gallery
+    t1 = datetime.datetime.now()
+    Query=qmat.reshape(-1)
+    #Gallery=Query
+       
+    length=len(qmat)
+    print ('qmat length', length) 
+#    assert(len(qmat)<400000)
+    #num=length/(pairs/length)
+    num=length/batch_size+1
+    print ('how many batchs:',num)
+    # threshold=unmap(threshold)
+    ans=[]   
+    pool=multiprocessing.Pool(processes=len(GPUs))
+   
+    for i in range(num):
+    #    print ('batch:',i)
+    #    print ('need GPU', i%6)
+        t1 = datetime.datetime.now()
+      #  print ('q[],lq,lg,dim,th,shift:', length*i/num*dim, length*(i+1)/num*dim, length*(i+1)/num-length*i/num, length, dim, threshold,length*i/num)
+      #  ans.append(pool.apply_async(do,(i,Query[length*i/num*dim:length*(i+1)/num*dim],Gallery[:],length*(i+1)/num-length*i/num, length, dim, threshold,length*i/num,GPUs[i%len(GPUs)],))) 
+        ans.append(pool.apply(do2,(i,length*i/num*dim,length*(i+1)/num*dim,length*(i+1)/num-length*i/num, length, dim, threshold,length*i/num,GPUs[i%len(GPUs)],)))
+       # t2 = datetime.datetime.now()
+       #print ('time:',t2-t1)
+    t11=datetime.datetime.now()
+    print ('end for load pool',t11-t1)
+    pool.close()
+    pool.join()
+   # t111=datetime.datetime.now()
+   # print ('end compute cdist:',t111-t1)
+    tuples=[]
+    #output_file = 'cdist_'+str(threshold)
+    for a in ans:
+        ret=a.get()
+        tuples.extend(ret)
+   # np.array(tuples)
+    print ('how many satisfying pairs:', len(tuples))
+    t2 = datetime.datetime.now()
+    print ('end compute dist',t2-t1)
+    return np.array(tuples)
