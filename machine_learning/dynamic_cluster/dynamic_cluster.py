@@ -42,6 +42,33 @@ def float_x(s):
     else:
         return 0
 
+
+def read_test(f1,f2):
+    """读文件1.读features文件得到features和相对时间戳,2.读参数文件得到打分"""
+    #1.
+    #features
+    t1=get_time()
+    print 'start read features and fid'
+    mat_features=[]
+    fid_list=[]
+    mat_features=normalize(np.load(f1))
+    #mat_features = normalize(np.loadtxt(f1,dtype='float32', usecols=range(1,385)))
+    #时间戳
+    #time_list=map(get_id_time, os.popen("awk '{print$1}' "+f1).read().splitlines())
+    #fid
+    #fid_list=os.popen("awk '{print$1}' "+f1).read().splitlines()
+    #2.
+    #打分
+    file_fid='../test_data/403_fid'
+    fid_list=os.popen('cat '+file_fid).read().splitlines()
+    t2=get_time()
+    print 'end read features, use %s s. start read scores'%(t2-t1)
+    score_list=np.load(f2)
+    #return time_list,mat_features, score_list, fid_list
+    t3=get_time()
+    print 'end read scores, use %s s'%(t3-t2)
+    return fid_list,mat_features,score_list
+
 def read_2(f1,f2):
     """读文件1.读features文件得到features和相对时间戳,2.读参数文件得到打分"""
     #1.
@@ -103,12 +130,12 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     rp_index={}
     if i==1:
         for j,label in enumerate(labels):
-            if not label in labels_index.keys():
+            if not label in labels_index:
                 labels_index[label]=[]
             labels_index[label].append(j)
     else:
         for index,label in zip(index_rp,labels):
-            if not label in labels_index.keys():
+            if not label in labels_index:
                 labels_index[label]=[]
             labels_index[label].append(index)
     print 'the %d cluster has %d clusters'%(i,len(labels_index))    
@@ -137,7 +164,7 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
 
 def main(f1,f2,threshold,out_file):#,f2
     #time_list,mat_features,score_list,fid_list=read(f1,f2)
-    fid_list, mat_features,score_list=read_2(f1,f2)
+    fid_list, mat_features,score_list=read_test(f1,f2)
     num=len(fid_list)
 
     t1=get_time()
@@ -175,7 +202,7 @@ def main(f1,f2,threshold,out_file):#,f2
     step=len(rp_index_list)
     labels_rp_result={}
     for rp, label in zip(index_rps_list[step],labels_rps_list[step]):
-        if not label in labels_rp_result.keys():
+        if not label in labels_rp_result:
             labels_rp_result[label]=[]
         labels_rp_result[label].append(rp)
     #print 'end 1---------->',get_time()-t3
@@ -230,7 +257,8 @@ if __name__ == "__main__":
     #out_put=sys.argv[3]
     # 以2016.1.1为起点
     print args
-    print '-feature:%s\n-params:%s\n-thresholds:%s\n-gpus:%s\n-out_put:%s\n'%(args.feature,args.param,args.thresholds,args.gpus,args.output)
+    print '-in_put: %s\n-feature: %s\n-params: %s\n-thresholds: %s\n-gpus: %s\n-out_put: %s\n'%(sys.argv[0],\
+        args.feature,args.param,args.thresholds,args.gpus,args.output)
     time_start=time.mktime(time.strptime('20160101000000',"%Y%m%d%H%M%S"))
     main(feature_file,params_file,thresholds,out_put)
     print get_time()
