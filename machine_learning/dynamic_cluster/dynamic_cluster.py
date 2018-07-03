@@ -69,7 +69,7 @@ def read_test(f1,f2):
     print 'end read scores, use %s s'%(t3-t2)
     return fid_list,mat_features,score_list
 
-def read_2(f1,f2):
+def read_new(f1,f2):
     """读文件1.读features文件得到features和相对时间戳,2.读参数文件得到打分"""
     #1.
     #features
@@ -138,21 +138,31 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
             if not label in labels_index:
                 labels_index[label]=[]
             labels_index[label].append(index)
+    #print 'labels--->',len(labels_index)
+    #count=0
+    #for ic in labels_index.values():
+    #    count+=len(ic)
+    #print 'labels.values-->',count
     print 'the %d cluster has %d clusters'%(i,len(labels_index))    
     for index_lst in labels_index.values():
         #labels_first_lst.append(label)
         tmp=0
         mark=0
         for index in index_lst:
-            if score_list[index]>tmp:
+            if score_list[index]>=tmp:
                 tmp=score_list[index]
                 mark = index
         index_rp_res.append(mark)
         rp_index[mark]=index_lst
-    #    mark=0
-    # num2=len(idex_rp)
+    #print '===='
+    #print 'rp_index--->',len(rp_index)
+    #count=0
+    #for ic in rp_index.values():
+    #    count+=len(ic)
+    #print '--->',count
+    #print '===='
     t2=get_time()
-    print 'end pre,use %s s.  start %d cluster:'%(t2-t1,i+1)
+    print 'end pre,use %s s.  start the No.%d cluster by threshold=%f:'%(t2-t1,i+1,threshold)
     print '------------------------------------'
     #print '==========',len(index_rp_res),mat_features.shape
     new_features=mat_features[index_rp_res]
@@ -160,6 +170,11 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     labels_2=cluster.cluster(pairs_cdists, len(labels_index))
     t3=get_time()
     print 'end %d cluster, use %s s'%(i+1, t3-t2)
+    #print '---->',len(rp_index)
+    #count=0
+    #for ic in rp_index.values():
+    #    count+=len(ic)
+    #print '----->',count
     return index_rp_res, labels_2, rp_index
 
 def main(f1,f2,threshold,out_file):#,f2
@@ -168,7 +183,7 @@ def main(f1,f2,threshold,out_file):#,f2
     num=len(fid_list)
 
     t1=get_time()
-    print 'start first cluster:',t1
+    print 'start the No.1 cluster by threshold=%f:'%threshold[0]
     print '------------------------------------'
     #按照时间戳排序:
     #for timestap,feature,score,fid in sorted(zip(time_list,mat_features,score_list,fid_list),key=lambda x:x[0]):
@@ -196,8 +211,23 @@ def main(f1,f2,threshold,out_file):#,f2
     
     # merge clusters
     t3=get_time()
+    #print '===================='
+    #print 'index'
+    #for i in index_rps_list:
+    #    print len(i)
+    #print 'labels'
+    #for i in labels_rps_list:
+    #    print len(i)
+    #print 'rp'
+    #for i in rp_index_list:
+    #    print len(i)
+    #    count =0
+    #    for c in i.values():
+    #        count +=len(c)
+    #    print count
+    #print '===================='
     print 'end loop cluster, use %s s'%(t3-t2)
-    print 'num of final clusters:',len(rp_index_list[-1])
+    print 'num of final clusters:',len(set(labels_rps_list[-1]))
     print 'start merge labels and write'
     step=len(rp_index_list)
     labels_rp_result={}
@@ -205,6 +235,14 @@ def main(f1,f2,threshold,out_file):#,f2
         if not label in labels_rp_result:
             labels_rp_result[label]=[]
         labels_rp_result[label].append(rp)
+    
+    #print '========================'
+    #print len(labels_rp_result)
+    #count=0
+    #for i in labels_rp_result.values():
+    #    count+=len(i)
+    #print count
+    #print '========================'
     #print 'end 1---------->',get_time()-t3
     for i in range(step-1,-1,-1):
         #print 'stt------->',i
@@ -214,6 +252,14 @@ def main(f1,f2,threshold,out_file):#,f2
             for index in s:
                 labels_rp_result[k].extend(rp_index_list[i][index])
             labels_rp_result[k]=list(set(labels_rp_result[k]))
+            
+        #print '========================',i
+        #print len(labels_rp_result)
+        #count=0
+        #for i in labels_rp_result.values():
+        #    count+=len(i)
+        #print count
+        #print '========================'
     t4 = get_time()
     print 'end merge labels, use %s s'%(t4-t3)
     #return labels_rp_result
@@ -247,6 +293,10 @@ if __name__ == "__main__":
     feature_file=args.feature
     params_file=args.param
     thresholds=map(float,args.thresholds.split(','))
+    for i in thresholds:
+        if i >=1 or i<=0.4:
+            print 'illegal thresholds'
+            exit()
     thresholds.sort()
     thresholds.reverse()
     out_put=args.output
