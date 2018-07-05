@@ -122,12 +122,15 @@ def read(f1,f2):
     return fid_list,mat_features,np.array(score_list)
 
 def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
+    '''
+
+    '''
     # 建标签索引 
     t1=get_time()
     print 'pre for the %d cluster'%(i+1)    
-    labels_index={}
-    index_rp_res=[]
-    rp_index={}
+    labels_index={} # key是label,value是该label对应的index组成的list
+    index_rp_res=[] # 下一轮作为代表参与聚类的index
+    rp_index={}     # key是代表,value是被代表的list,包括其本身.
     if i==1:
         for j,label in enumerate(labels):
             if not label in labels_index:
@@ -167,7 +170,7 @@ def loop_cluster(index_rp,labels,mat_features,score_list,threshold,i):
     #print '==========',len(index_rp_res),mat_features.shape
     new_features=mat_features[index_rp_res]
     pairs_cdists=compute_dist.get_cdist_multi(new_features,threshold,gpus)
-    labels_2=cluster.cluster(pairs_cdists, len(labels_index))
+    labels_2=cluster.cluster(pairs_cdists, len(labels_index)) #代表们的聚类结果
     t3=get_time()
     print 'end %d cluster, use %s s'%(i+1, t3-t2)
     #print '---->',len(rp_index)
@@ -288,7 +291,8 @@ def parse_args():
     return args
 
 if __name__ == "__main__":
-    print get_time()
+    t1=get_time()
+    print t1
     args=parse_args()
     feature_file=args.feature
     params_file=args.param
@@ -311,6 +315,8 @@ if __name__ == "__main__":
         args.feature,args.param,args.thresholds,args.gpus,args.output)
     time_start=time.mktime(time.strptime('20160101000000',"%Y%m%d%H%M%S"))
     main(feature_file,params_file,thresholds,out_put)
-    print get_time()
+    t2=get_time()
+    print t2
+    print 'the total time:',t2-t1
 
 
