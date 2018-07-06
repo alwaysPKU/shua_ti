@@ -269,7 +269,11 @@ def loop_cluster_weighted_feature(index_rp,labels,rp_index,mat_features,score_li
     #print '==========',len(index_rp_res),mat_features.shape
     new_features=mat_features[index_rp_res]
     for j in xrange(len(new_features)):
-        scores_j=scores[rp_index_tmp[index_rp_res[j]]]
+        if args.weighting_mode==1:#分数直接加权
+            scores_j=score_list[rp_index_tmp[index_rp_res[j]]]
+        elif args.weighting_mode==2:#平方加权
+            scores_j=score_list[rp_index_tmp[index_rp_res[j]]]
+            scores_j=scores_j*scores_j   
         features_j=mat_features[rp_index_tmp[index_rp_res[j]]]
         new_features[j]=normalize(np.sum(scores_j.reshape((-1,1))*features_j,axis=0).reshape((1,-1)))
     
@@ -358,9 +362,9 @@ def main_weighted(f1,f2,threshold,out_file):
     :return: None
     '''
     #time_list,mat_features,score_list,fid_list=read(f1,f2)
-    if args.read_mode==0:
+    if args.read_mode=='t':
         fid_list, mat_features,score_list=read_test(f1,f2)
-    elif args.read_mode==1:        
+    elif args.read_mode=='n':        
         fid_list, mat_features,score_list=read_new(f1,f2)
     num=len(fid_list)
 
@@ -419,10 +423,10 @@ def merge_write_weighted(fid_list,rp_index_list,index_rps_list,labels_rps_list,o
     print 'start merge labels and write'
     #step=len(rp_index_list)
     labels_rp_result={}
-    for rp, label in zip(index_rps_list[step],labels_rps_list[step]):
+    for rp, label in zip(index_rps_list[-1],labels_rps_list[-1]):
         if not label in labels_rp_result:
             labels_rp_result[label]=[]
-        labels_rp_result[label].extend(index_rps_list[rp])
+        labels_rp_result[label].extend(rp_index_list[rp])
     
     
     #print '========================'
@@ -522,20 +526,32 @@ def parse_args():
      参数解析
     :return: fature,params,threshold,gpu,output
     '''
-    parser=argparse.ArgumentParser(description="this is dynamic cluster")
+    parser=argparse.ArgumentParser(description="this is dynamic cluster. 动态聚类:给定阈值list动态聚类,可选择不同的mode")
     parser.add_argument("-f","--feature",help="the features file path")
     parser.add_argument("-p","--param",help="the parameter file path")
-    parser.add_argument("-t","--thresholds",default='0.9,0.8,0.7',dest="thresholds",help="the threshold list, split with ',' ,\n default=0.9,0.8,0.7 ")
-    parser.add_argument("-o","--output",default='res_default',help="the output file")
-    parser.add_argument("-g","--gpus",default='0,1,2,3,4,5',help="the gpu index,split with ',' ,\n default=0,1,2,3,4,5")
-    parser.add_argument("-r","--read_mode",type=int,default=0,choices=[0,1],help="the read mode.\n default is 0, 0 is test, 1 is normal read")
-    parser.add_argument("-m","--choice_mode",default='sample',choices=['sample','weighting'],help="how to chice the cluster' reference, the default is sample.\n sample:choice the biggest score(align*detect) as the cluster's sample.\n weighting: a_i=score_i f=Σa_i*f_i/Σa_i.")
+    parser.add_argument("-t","--thresholds",default='0.8,0.7',dest="thresholds",\
+                        help="the threshold list, split with ',' ,\n default=0.8,0.7 ")
+    parser.add_argument("-o","--output",default='default',help="the output file")
+    parser.add_argument("-g","--gpus",default='0,1,2,3,4,5',help="the gpu index,split with ',' ,\
+                        default=0,1,2,3,4,5")
+    parser.add_argument("-r","--read_mode",default='t',choices=['t','n'],help="the read mode.\
+                        default is t, t is test, n is normal read")
+    parser.add_argument("-m","--choice_mode",default='sample',choices=['sample','weighting'],\
+                        help="how to chice the cluster' reference, the default is sample.\
+                        sample:choice the biggest score(align*detect) as the cluster's sample.\
+                        weighting: a_i=score_i f=Σa_i*f_i/Σa_i.")
+    parser.add_argument("-w","--weighting_mode",type=int,default=1,choices=[1,2],help="when the \
+                        choice_mode is weighting, the weighting_mode=1 means f=Σa_i*f_i/Σa_i.\
+                        the weighting_mode=2 means Σa_i²*f_i/Σa_i².")
     args=parser.parse_args()
     return args
 
 if __name__ == "__main__":
     t1=get_time()
-    print t1
+    print '######################################################'
+    print '#############  start dynamic cluster  ################'
+    print '######################################################'
+    print t1,'\n'
     args=parse_args()
     feature_file=args.feature
     params_file=args.param
@@ -546,7 +562,13 @@ if __name__ == "__main__":
             exit()
     thresholds.sort()
     thresholds.reverse()
-    out_put=args.output
+    if args.output=='default':
+        if args.choice_mode=='weighting':
+            out_put='labels_'+args.thresholds+'_'+str(args.choice_mode)+'_'+str(args.weighting_mode)
+        elif args.choice_mode=='sample':
+            out_put='labels_'+args.thresholds+'_'+str(args.choice_mode)
+    else:
+        out_put=args.output
     gpus=map(int,args.gpus.split(','))
     #feature_file=sys.argv[1]
     #thresholds=[0.9,0.8,0.7]
@@ -554,8 +576,10 @@ if __name__ == "__main__":
     #out_put=sys.argv[3]
     # 以2016.1.1为起点
     print args
-    print '-->in_put: %s\n-->read_mode: %s\n-->feature: %s\n-->params: %s\n-->choice_mode: %s\n-->thresholds: %s\n-->gpus: %s\n-->out_put: %s\n'\
-        %(sys.argv[0],args.read_mode,args.feature,args.param,args.choice_mode,args.thresholds,args.gpus,args.output)
+    print '-->in_put: %s\n-->read_mode: %s\n-->feature: %s\n-->params: %s\n-->choice_mode: %s\n\
+-->weighting_mode :%s\n-->thresholds: %s\n-->gpus: %s\n-->out_put: %s\n'\
+            %(sys.argv[0],args.read_mode,args.feature,args.param,args.choice_mode,\
+            args.weighting_mode,args.thresholds,args.gpus,out_put)
     time_start=time.mktime(time.strptime('20160101000000',"%Y%m%d%H%M%S"))
     if args.choice_mode=='sample':
         main(feature_file,params_file,thresholds,out_put)
@@ -564,4 +588,6 @@ if __name__ == "__main__":
     t2=get_time()
     print t2
     print 'the total time:',t2-t1,t2
-
+    print '######################################################'
+    print '###############  end dynamic cluster  ################'
+    print '######################################################'
