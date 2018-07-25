@@ -55,3 +55,5 @@ l = [1,2,3,4,5]
 for i in l[:9]:
     print i
 
+visited= [range(1,5)]*3
+print visited[0][0]
